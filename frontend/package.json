@@ -34,6 +34,8 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router": "^7.13.0",
+    "react-router-dom": "^7.13.0",
     "streamdown": "^2.3.0",
     "use-debounce": "^10.1.0",
     "zod": "^4.3.6"

@@ -1,13 +1,22 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 import { TamboProvider } from "@tambo-ai/react";
-import { components } from "../../lib/tambo";
-import { MessageThreadFull } from "@/components/tambo/message-thread-full";
+import { components } from "./lib/tambo";
+import { MessageThreadFull } from "./components/tambo/message-thread-full";
+import { createBrowserRouter, RouterProvider } from "react-router";
+import { PersistentCart } from "./components/PersistentCart/PersistentCart";
+import { cartLoader } from "./components/PersistentCart/Loader";
+import { cartAction } from "./components/PersistentCart/Action";
 
 export default function App() {
   // other code
+  const router = createBrowserRouter([
+    {
+      path: "/cart/:cartId",
+      element: <PersistentCart />,
+      loader: cartLoader,
+      action: cartAction,
+    },
+  ]);
   return (
     <div>
       {/* other components */}
@@ -20,6 +29,7 @@ export default function App() {
         {/* other Tambo components */}
       </TamboProvider>
       {/* other components */}
+      <RouterProvider router={router} />
     </div>
   );
 }
