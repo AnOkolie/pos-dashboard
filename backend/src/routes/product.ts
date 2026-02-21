@@ -1,18 +1,8 @@
-import { serve } from "bun";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { and, gte, eq, sql } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { products } from "../db/schema/product";
 import { branches } from "../db/schema/branches";
 import { inventory } from "../db/schema/inventory";
-import postgres from "postgres";
-import { sales } from "../db/schema/sales";
-import { saleItems } from "../db/schema/sale_items";
-import type { SalesBodyType } from "../types/sales";
-import {
-  InventoryStatusFullSchema,
-  InventoryStatusSchema,
-} from "../zod/InventorySchema";
-import { customers } from "../db/schema/customers";
+import { InventoryStatusFullSchema } from "../zod/InventorySchema";
 import { db } from "../..";
 
 export const getProducts = async (pathname: string) => {
@@ -52,3 +42,24 @@ export const getProducts = async (pathname: string) => {
     });
   }
 };
+
+export async function searchInventoryByName(
+  productName: string,
+): Promise<Response> {
+  const rows = await db
+    .select({
+      productId: products.id,
+      productName: products.name,
+      branchId: branches.id,
+      branchName: branches.name,
+      quantity: inventory.quantity,
+    })
+    .from(products)
+    .innerJoin(inventory, eq(inventory.productId, products.id))
+    .innerJoin(branches, eq(branches.id, inventory.branchId))
+    .where(ilike(products.name, `%${productName}%`));
+
+  return new Response(JSON.stringify({ query: productName, results: rows }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}

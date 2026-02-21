@@ -1,6 +1,7 @@
 import "./App.css";
 import { TamboProvider } from "@tambo-ai/react";
 import { components } from "./lib/tambo";
+import { components as tamboComponents } from "./components/tambo/components";
 import { MessageThreadFull } from "./components/tambo/message-thread-full";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import { PersistentCart } from "./components/PersistentCart/PersistentCart";
@@ -22,7 +23,7 @@ export default function App() {
       {/* other components */}
       <TamboProvider
         apiKey={import.meta.env.VITE_TAMBO_API_KEY ?? ""}
-        components={components}
+        components={tamboComponents}
       >
         {/* Tambo components */}
         <MessageThreadFull />

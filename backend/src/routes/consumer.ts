@@ -1,93 +1,62 @@
-import { serve } from "bun";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { and, gte, eq, sql, desc } from "drizzle-orm";
+// src/routes/consumer.ts
+import { db } from "../../index";
+import { customers } from "../db/schema/customers"; // adjust if your schema file is named differently
+import { carts } from "../db/schema/cart";
+import { cartItems } from "../db/schema/cart_item";
 import { products } from "../db/schema/product";
-import { branches } from "../db/schema/branches";
-import { inventory } from "../db/schema/inventory";
-import postgres from "postgres";
-import { sales } from "../db/schema/sales";
-import { saleItems } from "../db/schema/sale_items";
-import type { SalesBodyType } from "../types/sales";
-import {
-  InventoryStatusFullSchema,
-  InventoryStatusSchema,
-} from "../zod/InventorySchema";
-import { customers } from "../db/schema/customers";
-import { db } from "../..";
+import { eq, ilike, desc } from "drizzle-orm";
 
-export const getConsumer = async (pathname: string) => {
-  const match = pathname.match(/^\/api\/customers\/(\d+)$/);
-  const id = match?.[1];
+// Existing:
+export async function getConsumer(pathname: string): Promise<Response | null> {
+  // your existing implementation
+  return null;
+}
 
-  if (id) {
-    const result = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.id, parseInt(id)));
+export async function searchConsumersByName(name: string): Promise<Response> {
+  const rows = await db
+    .select()
+    .from(customers)
+    .where(ilike(customers.name, `%${name}%`))
+    .limit(10);
 
-    return new Response(JSON.stringify(result), {
+  return new Response(JSON.stringify({ results: rows }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// ✅ New: /api/customers/:id/history
+export async function getConsumerHistory(pathname: string): Promise<Response> {
+  // pathname like: /api/customers/123/history
+  const parts = pathname.split("/").filter(Boolean);
+  const idStr = parts[2]; // ["api","customers","123","history"]
+  const customerId = Number(idStr);
+
+  if (!Number.isFinite(customerId)) {
+    return new Response(JSON.stringify({ error: "Invalid customer id" }), {
+      status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
-};
 
-export const getCustomerHistory = async (customerId: number) => {
-  const rows = await db
+  // Example: show last 10 carts and their items (adjust if your schema differs)
+  const history = await db
     .select({
-      customerName: customers.name,
-      loyaltyPoints: customers.loyaltyPoints,
-      saleId: sales.id,
-      totalAmount: sales.totalAmount,
-      createdAt: sales.createdAt,
-      productId: saleItems.productId,
-      quantity: saleItems.quantity,
-      unitPrice: saleItems.unitPrice,
+      cartId: carts.id,
+      createdAt: carts.createdAt,
+      status: carts.status,
+      itemId: cartItems.id,
+      quantity: cartItems.quantity,
+      productName: products.name,
+      price: products.price,
     })
-    .from(customers)
-    .leftJoin(sales, eq(customers.id, sales.customerId))
-    .leftJoin(saleItems, eq(sales.id, saleItems.saleId))
-    .where(eq(customers.id, customerId))
-    .orderBy(desc(sales.createdAt));
+    .from(carts)
+    .leftJoin(cartItems, eq(cartItems.cartId, carts.id))
+    .leftJoin(products, eq(products.id, cartItems.productId))
+    .where(eq(carts.customerId, customerId))
+    .orderBy(desc(carts.createdAt))
+    .limit(100);
 
-  if (rows.length === 0 || rows[0] === undefined) {
-    return new Response("Customer not found", { status: 404 });
-  }
-
-  // Group items by sale
-  const salesMap = new Map<number, any>();
-
-  for (const row of rows) {
-    if (!row.saleId) continue;
-
-    if (!salesMap.has(row.saleId)) {
-      salesMap.set(row.saleId, {
-        saleId: row.saleId,
-        createdAt: row.createdAt,
-        totalAmount: row.totalAmount,
-        items: [],
-      });
-    }
-
-    if (row.productId) {
-      salesMap.get(row.saleId).items.push({
-        productId: row.productId,
-        quantity: row.quantity,
-        unitPrice: row.unitPrice,
-      });
-    }
-  }
-
-  const totalSpent = Array.from(salesMap.values()).reduce(
-    (sum, s) => sum + (s.totalAmount ?? 0),
-    0,
-  );
-
-  const result = {
-    name: rows[0].customerName,
-    loyaltyPoints: rows[0].loyaltyPoints,
-    totalSpent,
-    salesHistory: Array.from(salesMap.values()),
-  };
-
-  return Response.json(result);
-};
+  return new Response(JSON.stringify({ customerId, history }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
