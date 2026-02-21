@@ -1,11 +1,4 @@
-import {
-  pgTable,
-  integer,
-  text,
-  timestamp,
-  numeric,
-  unique,
-} from "drizzle-orm/pg-core";
+import { pgTable, integer, numeric } from "drizzle-orm/pg-core";
 import { products } from "./product";
 import { sales } from "./sales";
 

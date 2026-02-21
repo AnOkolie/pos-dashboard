@@ -19,4 +19,5 @@ export const products = pgTable("products", {
   sku: text("sku").unique(),
 
   createdAt: timestamp("created_at").defaultNow(),
+  quantity: integer("quantity").default(0),
 });
