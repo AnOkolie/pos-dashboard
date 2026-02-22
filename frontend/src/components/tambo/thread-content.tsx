@@ -8,8 +8,8 @@ import {
   ReasoningInfo,
   ToolcallInfo,
   type messageVariants,
-} from "@/components/tambo/message";
-import { cn } from "@/lib/utils";
+} from "../../components/tambo/message";
+import { cn } from "../../lib/utils";
 import {
   type Content,
   type TamboThreadMessage,

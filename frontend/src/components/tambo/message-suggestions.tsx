@@ -2,7 +2,7 @@
 
 import { MessageGenerationStage } from "./message-generation-stage";
 import { Tooltip, TooltipProvider } from "./suggestions-tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import type { Suggestion, TamboThreadMessage } from "@tambo-ai/react";
 import { useTambo, useTamboSuggestions } from "@tambo-ai/react";
 import * as React from "react";
@@ -145,11 +145,13 @@ const MessageSuggestions = React.forwardRef<
     );
 
     // Find the last AI message
-    const lastAiMessage =
-      messages.length > 0
-        ? (messages.toReversed().find((msg) => msg.role === "assistant") ??
-          null)
-        : null;
+    const lastAiMessage = React.useMemo(() => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const msg = messages[i]; // msg is TamboThreadMessage
+        if (msg.role === "assistant") return msg;
+      }
+      return null;
+    }, [messages]);
 
     // When a new AI message appears, update the reference
     useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { TamboThreadMessage, TamboToolUseContent } from "@tambo-ai/react";
+import type { TamboThreadMessage, TamboToolUseContent } from "@tambo-ai/react";
 import {
   Message as MessageBase,
   type MessageContentProps as MessageBaseContentProps,
@@ -18,7 +18,7 @@ import {
   ToolcallInfo as ToolcallInfoBase,
   type ToolcallInfoRootProps as ToolcallInfoBaseRootProps,
 } from "@tambo-ai/react-ui-base/toolcall-info";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, ChevronDown, ExternalLink, Loader2, X } from "lucide-react";
 import * as React from "react";

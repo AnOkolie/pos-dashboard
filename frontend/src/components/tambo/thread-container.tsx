@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import {
   useCanvasDetection,
   usePositioning,
   useMergeRefs,
-} from "@/lib/thread-hooks";
+} from "../../lib/thread-hooks";
 import * as React from "react";
 import { useRef } from "react";
 

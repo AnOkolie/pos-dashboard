@@ -1,16 +1,16 @@
 "use client";
 
 import { useTamboMcpPrompt } from "@tambo-ai/react/mcp";
-import { ElicitationUI } from "@/components/tambo/elicitation-ui";
+import { ElicitationUI } from "../../components/tambo/elicitation-ui";
 import {
   McpPromptButton,
   McpResourceButton,
-} from "@/components/tambo/mcp-components";
+} from "../../components/tambo/mcp-components";
 import {
   Tooltip,
   TooltipProvider,
-} from "@/components/tambo/message-suggestions";
-import { cn } from "@/lib/utils";
+} from "../../components/tambo/message-suggestions";
+import { cn } from "../../lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import {
   ArrowUp,

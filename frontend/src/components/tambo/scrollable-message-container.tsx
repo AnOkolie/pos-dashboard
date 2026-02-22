@@ -1,7 +1,7 @@
 "use client";
 
 import { useTambo } from "@tambo-ai/react";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 
