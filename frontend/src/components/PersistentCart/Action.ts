@@ -28,11 +28,31 @@ export async function cartAction({ request }: { request: Request }) {
       throw new Error("productName and positive quantity are required");
     }
 
-    return fetch(`/api/cart/${cartId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productName, quantity }),
-    });
+    const fetchRes = await fetch(
+      `/api/inventory/products?name=${productName}`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    if (fetchRes) {
+      const data = await fetchRes.json();
+      if (data.items.length === 0) {
+        throw new Error(`No product found with name "${productName}"`);
+      }
+      data.productId = data.items[0].productId; // Assuming the first match is the intended product
+
+      return fetch(`/api/cart/${cartId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName,
+          quantity,
+          productId: data.productId,
+        }),
+      });
+    }
   }
 
   if (intent === "checkout") {

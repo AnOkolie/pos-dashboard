@@ -6,8 +6,8 @@ import { MessageThreadFull } from "./components/tambo/message-thread-full";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 
 import { PersistentCart } from "./components/PersistentCart/PersistentCart";
-import { cartLoader } from "./components/PersistentCart/Loader";
-import { cartAction } from "./components/PersistentCart/Action";
+import { cartLoader } from "./components/PersistentCart/loader";
+import { cartAction } from "./components/PersistentCart/action";
 import { InventoryStatus } from "./components/InventoryStatus/InventoryStatus";
 import { inventoryLoader } from "./components/InventoryStatus/loader";
 import { inventoryAction } from "./components/InventoryStatus/action";
@@ -20,7 +20,18 @@ import { SalesToday } from "./components/SalesChart/SalesChart";
 import { salesTodayAction } from "./components/SalesChart/action";
 import { salesTodayLoader } from "./components/SalesChart/loader";
 
+import { addToCartTool } from "./ai/tools/cartTools";
+import { searchProductsTool } from "./ai/tools/searchProductTools";
+import { checkoutCartTool } from "./ai/tools/checkoutTool";
+import { getInventoryTool } from "./ai/tools/inventoryTools";
+
 function AppShell() {
+  const tools = [
+    addToCartTool,
+    searchProductsTool,
+    checkoutCartTool,
+    getInventoryTool,
+  ];
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       {/* Left: Persistent cart */}
@@ -35,6 +46,7 @@ function AppShell() {
         <TamboProvider
           apiKey={import.meta.env.VITE_TAMBO_API_KEY ?? ""}
           components={tamboComponents}
+          tools={tools}
         >
           <MessageThreadFull />
         </TamboProvider>
@@ -52,24 +64,26 @@ const router = createBrowserRouter([
     element: <AppShell />,
     loader: cartLoader,
     action: cartAction,
-  },
-  {
-    path: "inventory",
-    element: <InventoryStatus />,
-    loader: inventoryLoader,
-    action: inventoryAction,
-  },
-  {
-    path: "customers",
-    element: <CustomerLoyaltyCard />,
-    loader: customerLoader,
-    action: customerAction,
-  },
-  {
-    path: "reports/today",
-    element: <SalesToday />,
-    loader: salesTodayLoader,
-    action: salesTodayAction,
+    children: [
+      {
+        path: "inventory",
+        element: <InventoryStatus />,
+        loader: inventoryLoader,
+        action: inventoryAction,
+      },
+      {
+        path: "customers",
+        element: <CustomerLoyaltyCard />,
+        loader: customerLoader,
+        action: customerAction,
+      },
+      {
+        path: "reports/today",
+        element: <SalesToday />,
+        loader: salesTodayLoader,
+        action: salesTodayAction,
+      },
+    ],
   },
 ]);
 

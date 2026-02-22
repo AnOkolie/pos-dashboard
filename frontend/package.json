@@ -38,7 +38,8 @@
     "react-router-dom": "^7.13.0",
     "streamdown": "^2.3.0",
     "use-debounce": "^10.1.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

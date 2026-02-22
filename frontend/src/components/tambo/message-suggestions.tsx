@@ -1,5 +1,3 @@
-"use client";
-
 import { MessageGenerationStage } from "./message-generation-stage";
 import { Tooltip, TooltipProvider } from "./suggestions-tooltip";
 import { cn } from "../../lib/utils";
@@ -115,11 +113,14 @@ const MessageSuggestions = React.forwardRef<
     ]);
 
     const isMac =
-      typeof navigator !== "undefined" && navigator.platform.startsWith("Mac");
+      typeof navigator !== "undefined" &&
+      /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
     // Track the last AI message ID to detect new messages
     const lastAiMessageIdRef = useRef<string | null>(null);
-    const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null,
+    );
 
     const contextValue = React.useMemo(
       () => ({
@@ -379,7 +380,6 @@ function getSuggestionButtonClassName({
   }
   return "bg-background hover:bg-accent hover:text-accent-foreground";
 }
-
 export {
   MessageSuggestions,
   MessageSuggestionsList,

@@ -1,62 +1,99 @@
-export const getInventory = async (req, res) => {
-  try {
-    const { branchId } = req.query;
-    if (!branchId) {
-      return res.status(400).json({ error: "branchId is required" });
-    }
+import { branches } from "../db/schema/branches";
+import { inventory } from "../db/schema/inventory";
+import { products } from "../db/schema/product";
+import { and, eq } from "drizzle-orm";
+import { db } from "../..";
 
-    const inventory = await req.db.inventory.findMany({
-      where: { branch_id: parseInt(branchId) },
-      include: {
-        product: true,
-      },
+export const getInventoryByProductId = async (pathname: string) => {
+  const idStr = pathname.match(/^\/api\/inventory\/product\/(\d+)$/)?.[1];
+  if (!idStr) {
+    return new Response(JSON.stringify({ message: "Product ID is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
     });
-
-    res.json(inventory);
-  } catch (error) {
-    console.error("Error fetching inventory:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
+
+  const productId = Number(idStr);
+  if (!Number.isFinite(productId)) {
+    return new Response(JSON.stringify({ message: "Invalid product ID" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const rows = await db
+    .select({
+      productName: products.name,
+      branchId: inventory.branchId,
+      stock: inventory.quantity,
+    })
+    .from(inventory)
+    .innerJoin(products, eq(inventory.productId, products.id))
+    .where(eq(inventory.productId, productId));
+
+  if (rows.length === 0 || rows[0] === undefined) {
+    return new Response(JSON.stringify({ message: "Product not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(
+    JSON.stringify({
+      productId,
+      productName: rows[0].productName,
+      branches: rows.map((r) => ({ branchId: r.branchId, stock: r.stock })),
+    }),
+    { headers: { "Content-Type": "application/json" } },
+  );
 };
 
-export const updateInventory = async (req, res) => {
-  try {
-    const { branchId } = req.query;
-    const { productId, quantity } = req.body;
-
-    if (!branchId || !productId || quantity === undefined) {
-      return res
-        .status(400)
-        .json({ error: "branchId, productId, and quantity are required" });
-    }
-
-    const inventoryItem = await req.db.inventory.findFirst({
-      where: {
-        branch_id: parseInt(branchId),
-        product_id: parseInt(productId),
-      },
+export const updateInventory2 = async (pathname: string, body: any) => {
+  const idStr = pathname.match(/^\/api\/inventory\/product\/(\d+)$/)?.[1];
+  if (!idStr) {
+    return new Response(JSON.stringify({ error: "Product ID is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
     });
-
-    if (inventoryItem) {
-      // Update existing inventory
-      await req.db.inventory.update({
-        where: { id: inventoryItem.id },
-        data: { quantity },
-      });
-    } else {
-      // Create new inventory record
-      await req.db.inventory.create({
-        data: {
-          branch_id: parseInt(branchId),
-          product_id: parseInt(productId),
-          quantity,
-        },
-      });
-    }
-
-    res.json({ message: "Inventory updated successfully" });
-  } catch (error) {
-    console.error("Error updating inventory:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
+  const productId = Number(idStr);
+  if (!Number.isFinite(productId)) {
+    return new Response(JSON.stringify({ error: "Invalid product ID" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const branchId = Number(body?.branchId);
+  const quantity = Number(body?.quantity);
+
+  if (!Number.isFinite(branchId) || !Number.isFinite(quantity)) {
+    return new Response(
+      JSON.stringify({ error: "branchId and quantity are required" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const existing = await db
+    .select({ id: inventory.id })
+    .from(inventory)
+    .where(
+      and(eq(inventory.productId, productId), eq(inventory.branchId, branchId)),
+    );
+
+  if (existing.length > 0 && existing[0] !== undefined) {
+    await db
+      .update(inventory)
+      .set({ quantity })
+      .where(eq(inventory.id, existing[0].id));
+  } else {
+    await db.insert(inventory).values({ productId, branchId, quantity });
+  }
+
+  return new Response(
+    JSON.stringify({ message: "Inventory updated successfully" }),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 };

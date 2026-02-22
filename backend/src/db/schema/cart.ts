@@ -13,6 +13,8 @@ export const carts = pgTable("carts", {
     .notNull()
     .references(() => branches.id),
 
+  token: text("token").notNull().unique(),
+
   status: text("status").default("active"),
 
   createdAt: timestamp("created_at").defaultNow(),

@@ -6,11 +6,11 @@ import { InventoryStatusFullSchema } from "../zod/InventorySchema";
 import { db } from "../..";
 
 export const getProducts = async (pathname: string) => {
-  const match = pathname.match(/^\/api\/inventory\/product\/([^\/]+)$/);
-  const name = match?.[1];
+  const match = pathname.match(/\/api\/inventory\/product\/(\d+)/)?.[1];
+  const id = match?.[1];
 
-  if (name) {
-    const decodedName = decodeURIComponent(name);
+  if (id) {
+    const decodedId = parseInt(id, 10);
 
     const rows = await db
       .select({
@@ -21,7 +21,7 @@ export const getProducts = async (pathname: string) => {
       .from(inventory)
       .innerJoin(products, eq(inventory.productId, products.id))
       .innerJoin(branches, eq(inventory.branchId, branches.id))
-      .where(eq(products.name, decodedName));
+      .where(eq(products.id, decodedId));
 
     if (rows.length === 0 || rows[0] === undefined) {
       return new Response(JSON.stringify({ message: "Product not found" }), {

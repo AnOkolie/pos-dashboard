@@ -14,3 +14,21 @@ export function saveCartId(id: number) {
 export function clearCartId() {
   localStorage.removeItem(KEY);
 }
+
+export async function getOrCreateCartId(customerId: string) {
+  let cartId = localStorage.getItem("cartId");
+
+  if (!cartId) {
+    const res = await fetch("/api/carts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId }),
+    });
+
+    const data = await res.json();
+    cartId = data.cartId;
+    if (cartId) localStorage.setItem("cartId", cartId);
+  }
+
+  return cartId;
+}

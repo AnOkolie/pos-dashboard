@@ -9,6 +9,9 @@ import { sales } from "../db/schema/sales";
 import { saleItems } from "../db/schema/sale_items";
 
 import { createCartBodySchema, updateCartBodySchema } from "../types/cart";
+import { customers } from "../db/schema/customers";
+import { calculateLoyaltyPoints } from "../lib/calculateLoyaltyPoints";
+import { randomUUID } from "crypto";
 
 // ===============================
 // GET CART BY ID
@@ -256,6 +259,14 @@ export const checkoutCart = async (pathname: string) => {
         .set({ status: "checked_out" })
         .where(eq(carts.id, cartId));
 
+      if (cart.customerId) {
+        await tx
+          .update(customers)
+          .set({
+            loyaltyPoints: sql`${customers.loyaltyPoints} + ${calculateLoyaltyPoints(total)}`,
+          })
+          .where(eq(customers.id, cart.customerId!));
+      }
       return { saleId: sale.id, total };
     });
 
@@ -274,12 +285,28 @@ export const checkoutCart = async (pathname: string) => {
 export const createCart = async (request: Request) => {
   const body = await request.json();
   const parsed = createCartBodySchema.parse(body);
-
+  const token = randomUUID();
+  let branchId = parsed.branchId;
+  if (!branchId) {
+    branchId = 1; // default branch ID if not provided
+  }
+  if (parsed.customerId) {
+    const result = await db
+      .insert(carts)
+      .values({
+        branchId: branchId,
+        token,
+        status: "active",
+      })
+      .returning();
+    return Response.json(result[0]);
+  }
   const result = await db
     .insert(carts)
     .values({
       customerId: parsed.customerId,
       branchId: parsed.branchId,
+      token,
       status: "active",
     })
     .returning();

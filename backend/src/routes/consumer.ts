@@ -6,13 +6,23 @@ import { cartItems } from "../db/schema/cart_item";
 import { products } from "../db/schema/product";
 import { eq, ilike, desc } from "drizzle-orm";
 
-// Existing:
-export async function getConsumer(pathname: string): Promise<Response | null> {
-  // your existing implementation
-  return null;
+export async function getCustomerById(pathname: string): Promise<Response> {
+  const id = pathname.match(/\/api\/customers\/(\d+)/)?.[1];
+  if (!id) return new Response("Invalid customer ID", { status: 400 });
+
+  const customerId = parseInt(id, 10);
+  const rows = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(10);
+
+  return new Response(JSON.stringify({ results: rows }), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-export async function searchConsumersByName(name: string): Promise<Response> {
+export async function searchCustomerByName(name: string): Promise<Response> {
   const rows = await db
     .select()
     .from(customers)
@@ -24,8 +34,7 @@ export async function searchConsumersByName(name: string): Promise<Response> {
   });
 }
 
-// ✅ New: /api/customers/:id/history
-export async function getConsumerHistory(pathname: string): Promise<Response> {
+export async function getCustomerHistory(pathname: string): Promise<Response> {
   // pathname like: /api/customers/123/history
   const parts = pathname.split("/").filter(Boolean);
   const idStr = parts[2]; // ["api","customers","123","history"]
