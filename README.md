@@ -80,6 +80,8 @@ cd frontend
 npm install
 npm run dev
 
+docker compose exec backend bun run seed
+
 ## Tambo AI
 
 | Tool              | Function                                  |
