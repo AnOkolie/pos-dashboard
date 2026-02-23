@@ -28,13 +28,10 @@ export async function cartAction({ request }: { request: Request }) {
       throw new Error("productName and positive quantity are required");
     }
 
-    const fetchRes = await fetch(
-      `/api/inventory/products?name=${productName}`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    const fetchRes = await fetch(`/api/inventory/product?name=${productName}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
 
     if (fetchRes) {
       const data = await fetchRes.json();
@@ -50,6 +47,7 @@ export async function cartAction({ request }: { request: Request }) {
           productName,
           quantity,
           productId: data.productId,
+          branchId: 1,
         }),
       });
     }

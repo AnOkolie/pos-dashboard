@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getSavedCartId } from "../../lib/cartSession";
+import { getSavedCartId, saveCartId } from "../../lib/cartSession";
 
 export const PersistentCart = () => {
   const [cart, setCart] = useState<any | null>(null);
@@ -10,10 +10,16 @@ export const PersistentCart = () => {
       let cartId = getSavedCartId();
 
       if (!cartId) {
-        const created = await fetch(`/api/cart`, { method: "POST" });
+        const created = await fetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ branchId: 1 }),
+        });
         const data = await created.json();
         cartId = data.id;
-        localStorage.setItem("cartId", String(cartId));
+        if (cartId) {
+          saveCartId(cartId);
+        }
       }
 
       const res = await fetch(`/api/cart/${cartId}`);
@@ -36,8 +42,12 @@ export const PersistentCart = () => {
 
   return (
     <div>
-      <h2>Cart #{cart.id}</h2>
-
+      <h2>Cart #{cart.cartId}</h2>
+      {cart.status === "checked_out" && (
+        <div style={{ marginTop: 8, padding: 8, background: "#ecfdf5" }}>
+          Checked out
+        </div>
+      )}
       {cart.items?.length ? (
         cart.items.map((item: any) => (
           <div key={item.productId}>

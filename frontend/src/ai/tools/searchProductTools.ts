@@ -43,7 +43,7 @@ export const searchProductsTool: TamboTool<any, any, []> = {
     const { query } = SearchProductsInputZ.parse(params);
 
     const res = await fetch(
-      `/api/inventory/products?name=${encodeURIComponent(query)}`,
+      `/api/inventory/product?name=${encodeURIComponent(query)}`,
     );
 
     if (!res.ok) {

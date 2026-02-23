@@ -20,10 +20,12 @@ import { SalesToday } from "./components/SalesChart/SalesChart";
 import { salesTodayAction } from "./components/SalesChart/action";
 import { salesTodayLoader } from "./components/SalesChart/loader";
 
-import { addToCartTool } from "./ai/tools/cartTools";
+import { addToCartTool } from "./ai/tools/cartTools/addToCartTools";
+import { removeFromCartTool } from "./ai/tools/cartTools/removeFromCartTools";
 import { searchProductsTool } from "./ai/tools/searchProductTools";
 import { checkoutCartTool } from "./ai/tools/checkoutTool";
 import { getInventoryTool } from "./ai/tools/inventoryTools";
+import { createCartTool } from "./ai/tools/cartTools/createCartTool";
 
 function AppShell() {
   const tools = [
@@ -31,6 +33,8 @@ function AppShell() {
     searchProductsTool,
     checkoutCartTool,
     getInventoryTool,
+    removeFromCartTool,
+    createCartTool,
   ];
   return (
     <div style={{ display: "flex", height: "100vh" }}>
@@ -47,6 +51,7 @@ function AppShell() {
           apiKey={import.meta.env.VITE_TAMBO_API_KEY ?? ""}
           components={tamboComponents}
           tools={tools}
+          userKey="dev-user-1"
         >
           <MessageThreadFull />
         </TamboProvider>

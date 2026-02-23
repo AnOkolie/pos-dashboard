@@ -21,7 +21,7 @@ export const api = {
   // Inventory
   inventoryByName: (name: string) =>
     request<{ query: string; results: any[] }>(
-      `/api/inventory/products?name=${encodeURIComponent(name)}`,
+      `/api/inventory/product?name=${encodeURIComponent(name)}`,
     ),
 
   // Customers

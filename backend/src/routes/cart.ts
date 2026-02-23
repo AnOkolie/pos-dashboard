@@ -8,7 +8,11 @@ import { carts } from "../db/schema/cart";
 import { sales } from "../db/schema/sales";
 import { saleItems } from "../db/schema/sale_items";
 
-import { createCartBodySchema, updateCartBodySchema } from "../types/cart";
+import {
+  createCartBodySchema,
+  updateCartBodySchema,
+  removeFromCartBodySchema,
+} from "../zod/CartSchema";
 import { customers } from "../db/schema/customers";
 import { calculateLoyaltyPoints } from "../lib/calculateLoyaltyPoints";
 import { randomUUID } from "crypto";
@@ -38,8 +42,16 @@ export const getCartById = async (pathname: string) => {
     0,
   );
 
+  const cartRow = await db
+    .select({ status: carts.status })
+    .from(carts)
+    .where(eq(carts.id, cartId));
+
+  if (!cartRow[0]) return new Response("Cart not found", { status: 404 });
+
   return Response.json({
     cartId,
+    status: cartRow[0].status,
     items: rows,
     total,
   });
@@ -154,6 +166,84 @@ export const updateCart = async (pathname: string, request: Request) => {
 };
 
 // ===============================
+// REMOVE FROM CART (FULL TRANSACTION)
+// ===============================
+
+export const removeFromCart = async (pathname: string, request: Request) => {
+  const match = pathname.match(/^\/api\/cart\/(\d+)\/items\/(\d+)$/);
+  const cartIdStr = match?.[1];
+  const productIdStr = match?.[2];
+
+  if (!cartIdStr) return new Response("Invalid cart ID", { status: 400 });
+  if (!productIdStr) return new Response("Invalid product ID", { status: 400 });
+
+  const cartId = Number(cartIdStr);
+  const productId = Number(productIdStr);
+
+  let body: unknown = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {}; // allow empty => default quantity 1
+  }
+  const { quantity } = removeFromCartBodySchema.parse(body);
+
+  if (quantity <= 0)
+    return new Response("Quantity must be greater than 0", { status: 400 });
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const cartObj = await tx
+        .select({ status: carts.status })
+        .from(carts)
+        .where(eq(carts.id, cartId));
+
+      if (!cartObj.length) throw new Error("Cart not found");
+      if (cartObj[0] && cartObj[0].status === "checked_out")
+        throw new Error("Cart already checked out");
+
+      const cartItem = await tx
+        .select({ id: cartItems.id, quantity: cartItems.quantity })
+        .from(cartItems)
+        .where(
+          and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId)),
+        );
+
+      if (!cartItem.length || cartItem[0] === undefined)
+        throw new Error("Product not in cart");
+
+      const currentQuantity = cartItem[0].quantity;
+      const newQuantity = currentQuantity - quantity;
+
+      if (newQuantity > 0) {
+        await tx
+          .update(cartItems)
+          .set({ quantity: newQuantity })
+          .where(eq(cartItems.id, cartItem[0].id));
+        return {
+          cartId,
+          productId,
+          removed: currentQuantity,
+          remaining: newQuantity,
+          deleted: false,
+        };
+      } else {
+        await tx.delete(cartItems).where(eq(cartItems.id, cartItem[0].id));
+        return {
+          cartId,
+          productId,
+          removed: currentQuantity,
+          remaining: 0,
+          deleted: true,
+        };
+      }
+    });
+  } catch (e: any) {
+    return new Response(e.message ?? "Failed to remove item", { status: 400 });
+  }
+};
+
+// ===============================
 // CHECKOUT CART (FULL TRANSACTION)
 // ===============================
 export const checkoutCart = async (pathname: string) => {
@@ -165,6 +255,7 @@ export const checkoutCart = async (pathname: string) => {
   try {
     const result = await db.transaction(async (tx) => {
       // ---- Get cart
+      console.log("Fetching cart info for cartId:", cartId);
       const cartRes = await tx.select().from(carts).where(eq(carts.id, cartId));
 
       if (!cartRes.length || cartRes[0] === undefined)
@@ -283,33 +374,19 @@ export const checkoutCart = async (pathname: string) => {
 // CREATE CART
 // ===============================
 export const createCart = async (request: Request) => {
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   const parsed = createCartBodySchema.parse(body);
   const token = randomUUID();
-  let branchId = parsed.branchId;
-  if (!branchId) {
-    branchId = 1; // default branch ID if not provided
-  }
-  if (parsed.customerId) {
-    const result = await db
-      .insert(carts)
-      .values({
-        branchId: branchId,
-        token,
-        status: "active",
-      })
-      .returning();
-    return Response.json(result[0]);
-  }
-  const result = await db
-    .insert(carts)
-    .values({
-      customerId: parsed.customerId,
-      branchId: parsed.branchId,
-      token,
-      status: "active",
-    })
-    .returning();
+  const branchId = parsed.branchId ?? 1;
 
-  return Response.json(result[0]);
+  const values: any = {
+    branchId,
+    token,
+    status: "active",
+  };
+
+  if (parsed.customerId) values.customerId = parsed.customerId;
+
+  const [created] = await db.insert(carts).values(values).returning();
+  return Response.json(created);
 };

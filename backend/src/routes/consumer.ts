@@ -1,4 +1,3 @@
-// src/routes/consumer.ts
 import { db } from "../../index";
 import { customers } from "../db/schema/customers"; // adjust if your schema file is named differently
 import { carts } from "../db/schema/cart";
@@ -10,14 +9,29 @@ export async function getCustomerById(pathname: string): Promise<Response> {
   const id = pathname.match(/\/api\/customers\/(\d+)/)?.[1];
   if (!id) return new Response("Invalid customer ID", { status: 400 });
 
-  const customerId = parseInt(id, 10);
-  const rows = await db
-    .select()
+  const customerId = Number(id);
+
+  const row = await db
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      loyaltyPoints: customers.loyaltyPoints, // or customers.loyalty_points depending on your schema
+      createdAt: customers.createdAt,
+    })
     .from(customers)
     .where(eq(customers.id, customerId))
-    .limit(10);
+    .then((res) => res[0]);
 
-  return new Response(JSON.stringify({ results: rows }), {
+  if (!row) {
+    return new Response(JSON.stringify({ error: "Customer not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(JSON.stringify(row), {
     headers: { "Content-Type": "application/json" },
   });
 }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { TamboTool } from "@tambo-ai/react";
 import type { JSONSchema7 } from "json-schema";
-import { getOrCreateCartId } from "../../lib/cartSession";
+import { ensureActiveCartId } from "../../../lib/cartSession";
 
 /* =========================
    Zod Schemas
@@ -39,9 +39,8 @@ const AddToCartOutputSchema: JSONSchema7 = {
   required: ["success", "cartId", "message"],
 };
 
-//replace guest-123 with real user/session handling in production
 export async function addToCart(productId: number, quantity: number) {
-  const cartId = await getOrCreateCartId("guest-123");
+  const cartId = await ensureActiveCartId(1);
 
   const res = await fetch(`/api/cart/${cartId}`, {
     method: "PUT",
@@ -83,5 +82,3 @@ export const addToCartTool: TamboTool<any, any, []> = {
   inputSchema: AddToCartInputSchema,
   outputSchema: AddToCartOutputSchema,
 };
-
-export const cartTools = [addToCartTool];

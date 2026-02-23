@@ -15,6 +15,7 @@ import {
   removeCartById,
   checkoutCart,
   updateCart,
+  removeFromCart,
 } from "./src/routes/cart";
 
 const POSTGRES_URL = process.env.POSTGRES_URL;
@@ -44,6 +45,19 @@ function text(body: string, status = 200): Response {
   return new Response(body, { status, headers: corsHeaders });
 }
 
+if (process.env.NODE_ENV === "development") {
+  const { execSync } = await import("child_process");
+
+  try {
+    execSync(`psql ${process.env.POSTGRES_URL} -f ./db/seed.sql`, {
+      stdio: "inherit",
+    });
+    console.log("🌱 Dev seed executed");
+  } catch (err) {
+    console.error("Seed failed", err);
+  }
+}
+
 serve({
   port: PORT,
   async fetch(request: Request): Promise<Response> {
@@ -65,8 +79,8 @@ serve({
     // INVENTORY
     // ---------------------------
 
-    // Query-based inventory lookup: /api/inventory/products?name=Blue%20Shirt
-    if (method === "GET" && pathname === "/api/inventory/products") {
+    // Query-based inventory lookup: /api/inventory/product?name=Blue%20Shirt
+    if (method === "GET" && pathname === "/api/inventory/product") {
       const name = (url.searchParams.get("name") ?? "").trim();
       if (!name) return json({ error: "name is required" }, 400);
 
@@ -165,6 +179,14 @@ serve({
     if (method === "POST" && pathname === "/api/cart") {
       const resp = await createCart(request);
       return resp ?? json({ error: "Failed to create cart" }, 500);
+    }
+
+    if (
+      method === "PATCH" &&
+      pathname.match(/^\/api\/cart\/\d+\/items\/\d+$/)
+    ) {
+      const resp = await removeFromCart(pathname, request);
+      return resp ?? json({ error: "Failed to remove item" }, 500);
     }
 
     return json({ error: "Endpoint Not Found", pathname }, 404);

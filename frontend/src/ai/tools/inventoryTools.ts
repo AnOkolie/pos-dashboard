@@ -41,7 +41,7 @@ export const getInventoryTool: TamboTool<any, any, []> = {
   tool: async (params: unknown) => {
     const { productId } = GetInventoryInputZ.parse(params);
 
-    const res = await fetch(`/api/inventory/products/${productId}`);
+    const res = await fetch(`/api/inventory/product/${productId}`);
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       return GetInventoryOutputZ.parse({

@@ -12,6 +12,20 @@ export function CustomerLoyaltyCard() {
   const nav = useNavigation();
   const isBusy = nav.state !== "idle";
 
+  const customer = data.customer;
+
+  const displayName = customer
+    ? (customer.name ??
+      `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim())
+    : "";
+
+  const loyaltyPoints = customer
+    ? (customer.loyaltyPoints ??
+      customer.loyalty_points ??
+      customer.loyaltyPoints?.value ??
+      0)
+    : 0;
+
   return (
     <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12 }}>
       <h3 style={{ marginTop: 0 }}>Customer Profile</h3>
@@ -31,15 +45,30 @@ export function CustomerLoyaltyCard() {
       <div style={{ marginTop: 12 }}>
         {data.error ? (
           <div style={{ color: "crimson" }}>{data.error}</div>
-        ) : data.customer ? (
+        ) : customer ? (
           <>
-            <div style={{ fontWeight: 700 }}>
-              {data.customer.name ??
-                `${data.customer.first_name ?? ""} ${data.customer.last_name ?? ""}`.trim()}
-            </div>
-            <div style={{ opacity: 0.8 }}>Customer ID: {data.customer.id}</div>
+            <div style={{ fontWeight: 700 }}>{displayName}</div>
+            <div style={{ opacity: 0.8 }}>Customer ID: {customer.id}</div>
 
-            <h4 style={{ marginBottom: 6 }}>History</h4>
+            <div
+              style={{
+                marginTop: 10,
+                padding: 12,
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+                background: "#f9fafb",
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ fontSize: 12, opacity: 0.75 }}>Loyalty Points</div>
+              <div style={{ fontSize: 26, fontWeight: 800 }}>
+                {loyaltyPoints}
+              </div>
+            </div>
+
+            <h4 style={{ marginBottom: 6, marginTop: 12 }}>History</h4>
             <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
               {JSON.stringify(data.history, null, 2)}
             </pre>

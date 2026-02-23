@@ -7,11 +7,10 @@ import { db } from "../..";
 
 export const getProducts = async (pathname: string) => {
   const match = pathname.match(/\/api\/inventory\/product\/(\d+)/)?.[1];
-  const id = match?.[1];
+  const id = match;
 
   if (id) {
     const decodedId = parseInt(id, 10);
-
     const rows = await db
       .select({
         productName: products.name,

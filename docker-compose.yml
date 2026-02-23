@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: pos-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pos-data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    command: sh -c "bun run seed && bun run index.ts"
+    environment:
+      POSTGRES_URL: postgresql://anthonyokolie@localhost:5432/pos
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pos-data:
