@@ -4,6 +4,7 @@ import { branches } from "../db/schema/branches";
 import { inventory } from "../db/schema/inventory";
 import { InventoryStatusFullSchema } from "../zod/InventorySchema";
 import { db } from "../..";
+import { corsHeaders } from "../lib/jsonWrapper";
 
 export const getProducts = async (pathname: string) => {
   const match = pathname.match(/\/api\/inventory\/product\/(\d+)/)?.[1];
@@ -25,6 +26,7 @@ export const getProducts = async (pathname: string) => {
     if (rows.length === 0 || rows[0] === undefined) {
       return new Response(JSON.stringify({ message: "Product not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -37,7 +39,7 @@ export const getProducts = async (pathname: string) => {
     };
     const validated = InventoryStatusFullSchema.parse(response);
     return new Response(JSON.stringify(validated), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 };
@@ -45,6 +47,7 @@ export const getProducts = async (pathname: string) => {
 export async function searchInventoryByName(
   productName: string,
 ): Promise<Response> {
+  console.log(`Searching inventory for product name: "${productName}"`);
   const rows = await db
     .select({
       productId: products.id,
@@ -57,8 +60,8 @@ export async function searchInventoryByName(
     .innerJoin(inventory, eq(inventory.productId, products.id))
     .innerJoin(branches, eq(branches.id, inventory.branchId))
     .where(ilike(products.name, `%${productName}%`));
-
+  console.log(`Search results for "${productName}":`, rows);
   return new Response(JSON.stringify({ query: productName, results: rows }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }

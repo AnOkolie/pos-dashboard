@@ -65,21 +65,18 @@ serve({
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Preflight (so browser fetch works)
     if (method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // Health / hello
+    // Health
     if (method === "GET" && pathname === "/api") {
       return text("Hello from Bun!");
     }
 
-    // ---------------------------
     // INVENTORY
-    // ---------------------------
 
-    // Query-based inventory lookup: /api/inventory/product?name=Blue%20Shirt
+    //  /api/inventory/product?name=Blue%20Shirt
     if (method === "GET" && pathname === "/api/inventory/product") {
       const name = (url.searchParams.get("name") ?? "").trim();
       if (!name) return json({ error: "name is required" }, 400);
@@ -88,23 +85,20 @@ serve({
       return resp ?? json({ error: "Failed to retrieve inventory" }, 500);
     }
 
-    // Path-based inventory lookup: /api/inventory/product/:id (keep for compatibility)
+    // /api/inventory/product/:id
     if (method === "GET" && pathname.startsWith("/api/inventory/product/")) {
       const resp = await getProducts(pathname);
       return resp ?? json({ error: "Failed to retrieve products" }, 500);
     }
 
-    // (Optional compatibility) if someone hits /api/inventory/product with no trailing slash
+    // /api/inventory/product
     if (method === "GET" && pathname === "/api/inventory/product") {
       return json({ error: "Missing product name in path" }, 400);
     }
 
-    // ---------------------------
     // CUSTOMERS
-    // ---------------------------
 
     // Search customers by name: /api/customers/search?name=Anthony
-    // IMPORTANT: keep this ABOVE /api/customers/:id
     if (method === "GET" && pathname === "/api/customers/search") {
       const name = (url.searchParams.get("name") ?? "").trim();
       if (!name) return json({ error: "name is required" }, 400);
@@ -131,64 +125,53 @@ serve({
       return resp ?? json({ error: "Failed to retrieve customer" }, 500);
     }
 
-    // ---------------------------
-    // REPORTS / SALES
-    // ---------------------------
-
     if (method === "GET" && pathname === "/api/reports/sales/today") {
       const result = await getSalesToday();
       return json(result);
     }
 
     if (method === "POST" && pathname === "/api/sales") {
-      // getSales seems to already return a Response
       const resp = await getSales(pathname, request);
-      return resp ?? json({ error: "Failed to record sale" }, 500);
+      return json(resp) ?? json({ error: "Failed to record sale" }, 500);
     }
 
-    // ---------------------------
-    // CART
-    // ---------------------------
-
-    // Checkout: /api/cart/:id/checkout (must be before generic routes)
     if (
       method === "POST" &&
       pathname.startsWith("/api/cart/") &&
       pathname.endsWith("/checkout")
     ) {
-      const resp = await checkoutCart(pathname);
-      return resp ?? json({ error: "Failed to checkout cart" }, 500);
+      const r = await checkoutCart(pathname);
+      return json(r.body, r.status ?? 200);
     }
 
-    if (method === "GET" && pathname.startsWith("/api/cart")) {
-      const resp = await getCartById(pathname);
-      return resp ?? json({ error: "Failed to retrieve cart" }, 500);
+    if (method === "GET" && /^\/api\/cart\/\d+$/.test(pathname)) {
+      const r = await getCartById(pathname);
+      return json(r.body, r.status ?? 200);
     }
 
     if (method === "DELETE" && pathname.startsWith("/api/cart")) {
-      const resp = await removeCartById(pathname);
-      return resp ?? json({ error: "Failed to delete cart" }, 500);
+      const r = await removeCartById(pathname);
+      return json(r.body, r.status ?? 200);
     }
 
     if (method === "PUT" && pathname.startsWith("/api/cart")) {
-      const resp = await updateCart(pathname, request);
-      return resp ?? json({ error: "Failed to update cart" }, 500);
+      const r = await updateCart(pathname, request);
+      return json(r.body, r.status ?? 200);
     }
 
-    // Create cart: exact match only
+    // Create cart
     if (method === "POST" && pathname === "/api/cart") {
-      const resp = await createCart(request);
-      return resp ?? json({ error: "Failed to create cart" }, 500);
+      const r = await createCart(request);
+      return json(r.body, r.status ?? 200);
     }
 
     if (
       method === "PATCH" &&
       pathname.match(/^\/api\/cart\/\d+\/items\/\d+$/)
     ) {
-      const resp = await removeFromCart(pathname, request);
-      return resp ?? json({ error: "Failed to remove item" }, 500);
+      const r = await removeFromCart(pathname, request);
+      return json(r.body, r.status ?? 200);
     }
-
     return json({ error: "Endpoint Not Found", pathname }, 404);
   },
 });

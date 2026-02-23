@@ -1,15 +1,16 @@
 import { z } from "zod";
 import type { TamboTool } from "@tambo-ai/react";
 import type { JSONSchema7 } from "json-schema";
-import { ensureActiveCartId } from "../../../lib/cartSession";
-
-/* =========================
-   Zod Schemas
-========================= */
+import {
+  ensureActiveCartId,
+  getOrCreateCartId,
+} from "../../../lib/cartSession";
 
 const AddToCartInputZ = z.object({
-  productId: z.number().int().positive(),
+  productName: z.string(),
   quantity: z.number().int().positive(),
+  productId: z.number().int().positive().optional(),
+  branchId: z.number().int().positive().optional(),
 });
 
 const AddToCartOutputZ = z.object({
@@ -40,8 +41,11 @@ const AddToCartOutputSchema: JSONSchema7 = {
 };
 
 export async function addToCart(productId: number, quantity: number) {
-  const cartId = await ensureActiveCartId(1);
-
+  //const cartId = await ensureActiveCartId(1);
+  const cartId = await getOrCreateCartId(1);
+  console.log(
+    `Attempting to add product ${productId} (qty ${quantity}) to cart ${cartId}`,
+  );
   const res = await fetch(`/api/cart/${cartId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -60,9 +64,32 @@ export const addToCartTool: TamboTool<any, any, []> = {
   description: "Add a product to the current user's shopping cart.",
 
   tool: async (params: unknown) => {
-    const { productId, quantity } = AddToCartInputZ.parse(params);
+    const { productName, quantity } = AddToCartInputZ.parse(params);
+
+    const searchRes = await fetch(
+      `/api/inventory/product?name=${encodeURIComponent(productName)}`,
+    );
+    const searchData = await searchRes.json();
+
+    const firstMatch = searchData?.data?.results?.[0];
+
+    if (!firstMatch) {
+      return AddToCartOutputZ.parse({
+        success: false,
+        cartId: -1,
+        message: `Product "${productName}" not found.`,
+      });
+    }
+
+    const productId = firstMatch.productId;
+    console.log(
+      `Found product "${productName}" with ID ${productId}. Adding to cart...`,
+    );
 
     try {
+      console.log(
+        `Found product "${productName}" with quantity ${firstMatch.quantity}. Adding to cart...`,
+      );
       const cartId = await addToCart(productId, quantity);
 
       return AddToCartOutputZ.parse({
