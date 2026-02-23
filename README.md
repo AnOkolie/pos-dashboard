@@ -82,16 +82,16 @@ npm run dev
 
 ## Tambo AI
 
-| Tools | Function |
-|---|---|---|
-search_products: | Search products by name
-get_inventory: | Retrieve product stock
-create_cart: | Create a new cart (guest or customer)
-add_to_cart: | Add product to active cart
-remove_from_cart: | Remove/decrease quantity
-checkout_cart: | Complete transaction
-sales_today: | Display today’s sales summary
-customer_loyalty: | Retrieve customer loyalty info
+| Tool              | Function                                  |
+|-------------------|--------------------------------------------|
+| search_products   | Search products by name                   |
+| get_inventory     | Retrieve product stock                    |
+| create_cart       | Create a new cart (guest or customer)     |
+| add_to_cart       | Add product to active cart                |
+| remove_from_cart  | Remove/decrease quantity                  |
+| checkout_cart     | Complete transaction                      |
+| sales_today       | Display today’s sales summary             |
+| customer_loyalty  | Retrieve customer loyalty info            |
 
 **🛒 Key Features**
 
