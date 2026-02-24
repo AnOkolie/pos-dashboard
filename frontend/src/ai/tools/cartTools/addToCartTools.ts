@@ -22,10 +22,10 @@ const AddToCartInputSchema: JSONSchema7 = {
   type: "object",
   additionalProperties: false,
   properties: {
-    productId: { type: "number" },
+    productName: { type: "string" },
     quantity: { type: "number" },
   },
-  required: ["productId", "quantity"],
+  required: ["productName", "quantity"],
 };
 
 const AddToCartOutputSchema: JSONSchema7 = {
@@ -40,8 +40,11 @@ const AddToCartOutputSchema: JSONSchema7 = {
 };
 
 export async function addToCart(productId: number, quantity: number) {
+  //const cartId = await ensureActiveCartId(1);
   const cartId = await ensureActiveCartId(1);
-
+  console.log(
+    `Attempting to add product ${productId} (qty ${quantity}) to cart ${cartId}`,
+  );
   const res = await fetch(`/api/cart/${cartId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -62,7 +65,30 @@ export const addToCartTool: TamboTool<any, any, []> = {
   tool: async (params: unknown) => {
     const { productId, quantity } = AddToCartInputZ.parse(params);
 
+    const searchRes = await fetch(
+      `/api/inventory/product?name=${encodeURIComponent(productName)}`,
+    );
+    const searchData = await searchRes.json();
+    console.log(`Search results for "${productName}":`, searchData?.results);
+    const firstMatch = searchData?.results?.[0];
+
+    if (!firstMatch) {
+      return AddToCartOutputZ.parse({
+        success: false,
+        cartId: -1,
+        message: `Product "${productName}" not found.`,
+      });
+    }
+
+    const productId = firstMatch.productId;
+    console.log(
+      `Found product "${productName}" with ID ${productId}. Adding to cart...`,
+    );
+
     try {
+      console.log(
+        `Found product "${productName}" with quantity ${firstMatch.quantity}. Adding to cart...`,
+      );
       const cartId = await addToCart(productId, quantity);
 
       return AddToCartOutputZ.parse({

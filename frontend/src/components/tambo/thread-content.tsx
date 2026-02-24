@@ -8,7 +8,7 @@ import {
   ReasoningInfo,
   ToolcallInfo,
   type messageVariants,
-} from "../../components/tambo/message";
+} from "./message";
 import { cn } from "../../lib/utils";
 import {
   type Content,
