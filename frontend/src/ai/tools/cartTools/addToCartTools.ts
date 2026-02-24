@@ -8,7 +8,7 @@ import { ensureActiveCartId } from "../../../lib/cartSession";
 ========================= */
 
 const AddToCartInputZ = z.object({
-  productId: z.number().int().positive(),
+  productName: z.string().min(1),
   quantity: z.number().int().positive(),
 });
 
@@ -63,7 +63,7 @@ export const addToCartTool: TamboTool<any, any, []> = {
   description: "Add a product to the current user's shopping cart.",
 
   tool: async (params: unknown) => {
-    const { productId, quantity } = AddToCartInputZ.parse(params);
+    const { productName, quantity } = AddToCartInputZ.parse(params);
 
     const searchRes = await fetch(
       `/api/inventory/product?name=${encodeURIComponent(productName)}`,
@@ -86,9 +86,6 @@ export const addToCartTool: TamboTool<any, any, []> = {
     );
 
     try {
-      console.log(
-        `Found product "${productName}" with quantity ${firstMatch.quantity}. Adding to cart...`,
-      );
       const cartId = await addToCart(productId, quantity);
 
       return AddToCartOutputZ.parse({
