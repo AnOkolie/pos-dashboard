@@ -1,3 +1,4 @@
+// cart.ts
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../..";
 
@@ -17,12 +18,15 @@ import { customers } from "../db/schema/customers";
 import { calculateLoyaltyPoints } from "../lib/calculateLoyaltyPoints";
 import { randomUUID } from "crypto";
 
-// ===============================
-// GET CART BY ID
-// ===============================
-export const getCartById = async (pathname: string) => {
+// ✅ remove these imports if index.ts wraps everything
+// import { corsHeaders, json } from "../lib/jsonWrapper";
+
+export type RouteResult<T = unknown> = { status?: number; body: T };
+
+// get cart by id
+export const getCartById = async (pathname: string): Promise<RouteResult> => {
   const id = pathname.match(/\/api\/cart\/(\d+)/)?.[1];
-  if (!id) return new Response("Invalid cart ID", { status: 400 });
+  if (!id) return { status: 400, body: { error: "Invalid cart ID" } };
 
   const cartId = parseInt(id, 10);
 
@@ -47,49 +51,51 @@ export const getCartById = async (pathname: string) => {
     .from(carts)
     .where(eq(carts.id, cartId));
 
-  if (!cartRow[0]) return new Response("Cart not found", { status: 404 });
+  if (!cartRow[0]) return { status: 404, body: { error: "Cart not found" } };
 
-  return Response.json({
-    cartId,
-    status: cartRow[0].status,
-    items: rows,
-    total,
-  });
+  return {
+    body: {
+      cartId,
+      status: cartRow[0].status,
+      items: rows,
+      total,
+    },
+  };
 };
 
-// ===============================
-// DELETE CART
-// ===============================
-export const removeCartById = async (pathname: string) => {
+export const removeCartById = async (
+  pathname: string,
+): Promise<RouteResult> => {
   const id = pathname.match(/\/api\/cart\/(\d+)/)?.[1];
-  if (!id) return new Response("Invalid cart ID", { status: 400 });
+  if (!id) return { status: 400, body: { error: "Invalid cart ID" } };
 
   const cartId = parseInt(id, 10);
 
   const res = await db.delete(carts).where(eq(carts.id, cartId)).returning();
 
-  if (!res.length) {
-    return new Response("Cart not found", { status: 404 });
-  }
+  if (!res.length) return { status: 404, body: { error: "Cart not found" } };
 
-  return Response.json({ message: "Cart deleted", cart: res[0] });
+  return { body: { message: "Cart deleted", cart: res[0] } };
 };
 
-// ===============================
-// UPDATE CART (Add / Increase Item)
-// ===============================
-export const updateCart = async (pathname: string, request: Request) => {
+export const updateCart = async (
+  pathname: string,
+  request: Request,
+): Promise<RouteResult> => {
   const id = pathname.match(/\/api\/cart\/(\d+)/)?.[1];
-  if (!id) return new Response("Invalid cart ID", { status: 400 });
+  if (!id) return { status: 400, body: { error: "Invalid cart ID" } };
 
   const cartId = parseInt(id, 10);
   const body = await request.json();
+  console.log("Headers:", request.headers.get("user-agent"));
+  console.log("Request body:", body);
   const parsed = updateCartBodySchema.parse(body);
+  console.log("Parsed update cart body:", parsed);
 
-  if (parsed.quantity <= 0)
-    return new Response("Invalid quantity", { status: 400 });
+  if (parsed.quantity <= 0) {
+    return { status: 400, body: { error: "Invalid quantity" } };
+  }
 
-  // ---- Get cart info
   const cartRes = await db
     .select({
       status: carts.status,
@@ -99,14 +105,14 @@ export const updateCart = async (pathname: string, request: Request) => {
     .where(eq(carts.id, cartId));
 
   if (!cartRes.length || cartRes[0] === undefined) {
-    return new Response("Cart not found", { status: 404 });
+    return { status: 404, body: { error: "Cart not found" } };
   }
-  if (cartRes[0].status === "checked_out")
-    return new Response("Cart already checked out", { status: 400 });
+  if (cartRes[0].status === "checked_out") {
+    return { status: 400, body: { error: "Cart already checked out" } };
+  }
 
   const branchId = cartRes[0].branchId;
 
-  // ---- Check inventory availability
   const stock = await db
     .select({ quantity: inventory.quantity })
     .from(inventory)
@@ -118,24 +124,21 @@ export const updateCart = async (pathname: string, request: Request) => {
     );
 
   const available = stock[0]?.quantity ?? 0;
-
   if (available < parsed.quantity) {
-    return new Response("Insufficient stock", { status: 400 });
+    return { status: 400, body: { error: "Insufficient stock" } };
   }
 
-  // ---- Get product price
   const priceRes = await db
     .select({ price: products.price })
     .from(products)
     .where(eq(products.id, parsed.productId));
 
   if (!priceRes.length || priceRes[0] === undefined) {
-    return new Response("Product not found", { status: 404 });
+    return { status: 404, body: { error: "Product not found" } };
   }
 
   const unitPrice = priceRes[0].price.toString();
 
-  // ---- Check if item already exists
   const existing = await db
     .select()
     .from(cartItems)
@@ -149,9 +152,7 @@ export const updateCart = async (pathname: string, request: Request) => {
   if (existing.length && existing[0]) {
     await db
       .update(cartItems)
-      .set({
-        quantity: existing[0].quantity + parsed.quantity,
-      })
+      .set({ quantity: existing[0].quantity + parsed.quantity })
       .where(eq(cartItems.id, existing[0].id));
   } else {
     await db.insert(cartItems).values({
@@ -162,20 +163,20 @@ export const updateCart = async (pathname: string, request: Request) => {
     });
   }
 
-  return Response.json({ message: "Cart updated successfully" });
+  return { body: { message: "Cart updated successfully" } };
 };
 
-// ===============================
-// REMOVE FROM CART (FULL TRANSACTION)
-// ===============================
-
-export const removeFromCart = async (pathname: string, request: Request) => {
+export const removeFromCart = async (
+  pathname: string,
+  request: Request,
+): Promise<RouteResult> => {
   const match = pathname.match(/^\/api\/cart\/(\d+)\/items\/(\d+)$/);
   const cartIdStr = match?.[1];
   const productIdStr = match?.[2];
 
-  if (!cartIdStr) return new Response("Invalid cart ID", { status: 400 });
-  if (!productIdStr) return new Response("Invalid product ID", { status: 400 });
+  if (!cartIdStr) return { status: 400, body: { error: "Invalid cart ID" } };
+  if (!productIdStr)
+    return { status: 400, body: { error: "Invalid product ID" } };
 
   const cartId = Number(cartIdStr);
   const productId = Number(productIdStr);
@@ -184,12 +185,16 @@ export const removeFromCart = async (pathname: string, request: Request) => {
   try {
     body = await request.json();
   } catch {
-    body = {}; // allow empty => default quantity 1
+    body = {};
   }
   const { quantity } = removeFromCartBodySchema.parse(body);
 
-  if (quantity <= 0)
-    return new Response("Quantity must be greater than 0", { status: 400 });
+  if (quantity <= 0) {
+    return {
+      status: 400,
+      body: { error: "Quantity must be greater than 0" },
+    };
+  }
 
   try {
     const result = await db.transaction(async (tx) => {
@@ -238,35 +243,33 @@ export const removeFromCart = async (pathname: string, request: Request) => {
         };
       }
     });
+
+    return { body: result };
   } catch (e: any) {
-    return new Response(e.message ?? "Failed to remove item", { status: 400 });
+    console.error("Error removing from cart:", e);
+    return {
+      status: 400,
+      body: { error: e.message ?? "Failed to remove item" },
+    };
   }
 };
 
-// ===============================
-// CHECKOUT CART (FULL TRANSACTION)
-// ===============================
-export const checkoutCart = async (pathname: string) => {
+export const checkoutCart = async (pathname: string): Promise<RouteResult> => {
   const id = pathname.match(/\/api\/cart\/(\d+)\/checkout/)?.[1];
-  if (!id) return new Response("Invalid cart ID", { status: 400 });
+  if (!id) return { status: 400, body: { error: "Invalid cart ID" } };
 
   const cartId = parseInt(id, 10);
 
   try {
     const result = await db.transaction(async (tx) => {
-      // ---- Get cart
-      console.log("Fetching cart info for cartId:", cartId);
       const cartRes = await tx.select().from(carts).where(eq(carts.id, cartId));
-
       if (!cartRes.length || cartRes[0] === undefined)
         throw new Error("Cart not found");
 
       const cart = cartRes[0];
-
       if (cart.status === "checked_out")
         throw new Error("Cart already checked out");
 
-      // ---- Get cart items
       const items = await tx
         .select({
           productId: cartItems.productId,
@@ -278,7 +281,6 @@ export const checkoutCart = async (pathname: string) => {
 
       if (!items.length) throw new Error("Cart is empty");
 
-      // ---- Validate inventory
       for (const item of items) {
         const stock = await tx
           .select({ quantity: inventory.quantity })
@@ -299,13 +301,11 @@ export const checkoutCart = async (pathname: string) => {
         }
       }
 
-      // ---- Calculate total
       const total = items.reduce(
         (sum, item) => sum + parseFloat(item.price) * item.quantity,
         0,
       );
 
-      // ---- Create sale
       const [sale] = await tx
         .insert(sales)
         .values({
@@ -315,11 +315,8 @@ export const checkoutCart = async (pathname: string) => {
         })
         .returning();
 
-      if (!sale) {
-        throw new Error("Failed to create sale");
-      }
+      if (!sale) throw new Error("Failed to create sale");
 
-      // ---- Insert sale items
       await tx.insert(saleItems).values(
         items.map((item) => ({
           saleId: sale.id,
@@ -329,13 +326,10 @@ export const checkoutCart = async (pathname: string) => {
         })),
       );
 
-      // ---- Deduct inventory
       for (const item of items) {
         await tx
           .update(inventory)
-          .set({
-            quantity: sql`${inventory.quantity} - ${item.quantity}`,
-          })
+          .set({ quantity: sql`${inventory.quantity} - ${item.quantity}` })
           .where(
             and(
               eq(inventory.productId, item.productId),
@@ -344,7 +338,6 @@ export const checkoutCart = async (pathname: string) => {
           );
       }
 
-      // ---- Mark cart checked out
       await tx
         .update(carts)
         .set({ status: "checked_out" })
@@ -358,35 +351,26 @@ export const checkoutCart = async (pathname: string) => {
           })
           .where(eq(customers.id, cart.customerId!));
       }
+
       return { saleId: sale.id, total };
     });
 
-    return Response.json({
-      message: "Checkout successful",
-      ...result,
-    });
+    return { body: { message: "Checkout successful", ...result } };
   } catch (err: any) {
-    return new Response(err.message, { status: 400 });
+    return { status: 400, body: { error: err.message } };
   }
 };
 
-// ===============================
-// CREATE CART
-// ===============================
-export const createCart = async (request: Request) => {
+export const createCart = async (request: Request): Promise<RouteResult> => {
   const body = await request.json().catch(() => ({}));
   const parsed = createCartBodySchema.parse(body);
+  console.log("Parsed create cart body:", parsed);
   const token = randomUUID();
   const branchId = parsed.branchId ?? 1;
 
-  const values: any = {
-    branchId,
-    token,
-    status: "active",
-  };
-
+  const values: any = { branchId, token, status: "active" };
   if (parsed.customerId) values.customerId = parsed.customerId;
 
   const [created] = await db.insert(carts).values(values).returning();
-  return Response.json(created);
+  return { status: 201, body: created };
 };

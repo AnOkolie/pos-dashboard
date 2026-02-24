@@ -1,19 +1,11 @@
-import { serve } from "bun";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { and, gte, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { products } from "../db/schema/product";
-import { branches } from "../db/schema/branches";
 import { inventory } from "../db/schema/inventory";
-import postgres from "postgres";
 import { sales } from "../db/schema/sales";
 import { saleItems } from "../db/schema/sale_items";
 import type { SalesBodyType } from "../types/sales";
-import {
-  InventoryStatusFullSchema,
-  InventoryStatusSchema,
-} from "../zod/InventorySchema";
-import { customers } from "../db/schema/customers";
 import { db } from "../..";
+import { corsHeaders } from "../lib/jsonWrapper";
 
 export const getSales = async (pathname: string, request: Request) => {
   const body = (await request.json()) as SalesBodyType;
@@ -102,9 +94,7 @@ export const getSales = async (pathname: string, request: Request) => {
     return { saleId: newSale.id, total };
   });
 
-  return new Response(JSON.stringify(result), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return JSON.stringify(result);
 };
 
 export const getSalesToday = async () => {
@@ -125,5 +115,5 @@ export const getSalesToday = async () => {
     )
     .groupBy(products.id, products.name);
 
-  return Response.json(rows);
+  return rows;
 };

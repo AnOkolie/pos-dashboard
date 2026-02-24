@@ -26,6 +26,8 @@ import { searchProductsTool } from "./ai/tools/searchProductTools";
 import { checkoutCartTool } from "./ai/tools/checkoutTool";
 import { getInventoryTool } from "./ai/tools/inventoryTools";
 import { createCartTool } from "./ai/tools/cartTools/createCartTool";
+import { todaySalesTool } from "./ai/tools/todaySales";
+import { loyaltyPointsTool } from "./ai/tools/loyaltyInfoTool";
 
 function AppShell() {
   const tools = [
@@ -35,6 +37,8 @@ function AppShell() {
     getInventoryTool,
     removeFromCartTool,
     createCartTool,
+    todaySalesTool,
+    loyaltyPointsTool,
   ];
   return (
     <div style={{ display: "flex", height: "100vh" }}>
@@ -56,7 +60,6 @@ function AppShell() {
           <MessageThreadPanel />
         </TamboProvider>
 
-        {/* If you add more routes later, they render here */}
         <Outlet />
       </div>
     </div>

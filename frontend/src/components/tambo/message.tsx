@@ -733,22 +733,32 @@ function ToolResultText({
 }) {
   if (!text) return null;
 
+  // If tool returned JSON, show ONLY its `message` field (per assignment)
   try {
     const parsed = JSON.parse(text);
-    return (
-      <pre
-        className={cn(
-          "bg-muted/50 rounded-md p-3 text-xs overflow-x-auto overflow-y-auto max-w-full max-h-64",
-        )}
-      >
-        <code className="font-mono wrap-break-word whitespace-pre-wrap">
-          {JSON.stringify(parsed, null, 2)}
-        </code>
-      </pre>
+
+    // Most of your tools return { success, message, ... }
+    if (parsed && typeof parsed === "object" && "message" in parsed) {
+      const msg = (parsed as any).message;
+      if (typeof msg === "string") {
+        return enableMarkdown ? (
+          <Streamdown components={markdownComponents}>{msg}</Streamdown>
+        ) : (
+          <span className="whitespace-pre-wrap">{msg}</span>
+        );
+      }
+    }
+
+    // If it was JSON but had no message field, don't dump JSON—just show nothing or a short fallback
+    return enableMarkdown ? (
+      <Streamdown components={markdownComponents}>{"Done."}</Streamdown>
+    ) : (
+      <span>Done.</span>
     );
   } catch {
-    // JSON parsing failed, render as markdown or plain text
-    if (!enableMarkdown) return text;
+    // Not JSON: render as normal text/markdown
+    if (!enableMarkdown)
+      return <span className="whitespace-pre-wrap">{text}</span>;
     return <Streamdown components={markdownComponents}>{text}</Streamdown>;
   }
 }

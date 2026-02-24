@@ -10,7 +10,6 @@ const CheckoutOutputZ = z.object({
   success: z.boolean(),
   cartId: z.number(),
   message: z.string(),
-  // optionally return backend payload too
   data: z.unknown().optional(),
 });
 
@@ -30,7 +29,7 @@ const CheckoutOutputSchema: JSONSchema7 = {
     success: { type: "boolean" },
     cartId: { type: "number" },
     message: { type: "string" },
-    data: {}, // allow anything (JSONSchema7 "any" style)
+    data: {},
   },
   required: ["success", "cartId", "message"],
 };
@@ -53,7 +52,6 @@ export const checkoutCartTool: TamboTool<any, any, []> = {
       });
     }
 
-    // backend might return json or empty; handle both
     const contentType = res.headers.get("content-type") ?? "";
     const data = contentType.includes("application/json")
       ? await res.json()

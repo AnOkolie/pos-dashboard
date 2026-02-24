@@ -22,7 +22,6 @@ const CreateCartInputSchema: JSONSchema7 = {
     branchId: { type: "number" },
     customerId: { type: "number" },
   },
-  // NOTE: no required fields
 };
 
 const CreateCartOutputSchema: JSONSchema7 = {
@@ -53,7 +52,6 @@ export const createCartTool: TamboTool<any, any, []> = {
     const body: Record<string, unknown> = {};
     if (branchId !== undefined) body.branchId = branchId;
     if (customerId !== undefined) body.customerId = customerId;
-    // Build body WITHOUT nulls
 
     if (typeof parsed.branchId === "number") body.branchId = parsed.branchId;
     if (typeof parsed.customerId === "number")

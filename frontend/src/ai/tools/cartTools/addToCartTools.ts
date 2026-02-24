@@ -1,15 +1,16 @@
 import { z } from "zod";
 import type { TamboTool } from "@tambo-ai/react";
 import type { JSONSchema7 } from "json-schema";
-import { ensureActiveCartId } from "../../../lib/cartSession";
-
-/* =========================
-   Zod Schemas
-========================= */
+import {
+  ensureActiveCartId,
+  getOrCreateCartId,
+} from "../../../lib/cartSession";
 
 const AddToCartInputZ = z.object({
   productName: z.string().min(1),
   quantity: z.number().int().positive(),
+  productId: z.number().int().positive().optional(),
+  branchId: z.number().int().positive().optional(),
 });
 
 const AddToCartOutputZ = z.object({
@@ -86,6 +87,9 @@ export const addToCartTool: TamboTool<any, any, []> = {
     );
 
     try {
+      console.log(
+        `Found product "${productName}" with quantity ${firstMatch.quantity}. Adding to cart...`,
+      );
       const cartId = await addToCart(productId, quantity);
 
       return AddToCartOutputZ.parse({
