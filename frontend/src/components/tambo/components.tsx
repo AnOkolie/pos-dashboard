@@ -150,24 +150,6 @@ function PersistentCartPanel(props: z.infer<typeof PersistentCartPanelProps>) {
     setErr(null);
     setCart(null);
 
-    (async () => {
-      try {
-        const id = await ensureCart();
-
-        if (addItemName && addItemQty) {
-          await api.updateCart(id, {
-            productName: addItemName,
-            quantity: addItemQty,
-          });
-        }
-
-        const fresh = await api.getCart(id);
-        if (!cancelled) setCart(fresh);
-      } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? String(e));
-      }
-    })();
-
     return () => {
       cancelled = true;
     };

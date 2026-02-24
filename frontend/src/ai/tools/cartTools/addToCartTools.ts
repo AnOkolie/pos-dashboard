@@ -7,7 +7,7 @@ import {
 } from "../../../lib/cartSession";
 
 const AddToCartInputZ = z.object({
-  productName: z.string(),
+  productName: z.string().min(1),
   quantity: z.number().int().positive(),
   productId: z.number().int().positive().optional(),
   branchId: z.number().int().positive().optional(),
@@ -23,10 +23,10 @@ const AddToCartInputSchema: JSONSchema7 = {
   type: "object",
   additionalProperties: false,
   properties: {
-    productId: { type: "number" },
+    productName: { type: "string" },
     quantity: { type: "number" },
   },
-  required: ["productId", "quantity"],
+  required: ["productName", "quantity"],
 };
 
 const AddToCartOutputSchema: JSONSchema7 = {
@@ -42,7 +42,7 @@ const AddToCartOutputSchema: JSONSchema7 = {
 
 export async function addToCart(productId: number, quantity: number) {
   //const cartId = await ensureActiveCartId(1);
-  const cartId = await getOrCreateCartId(1);
+  const cartId = await ensureActiveCartId(1);
   console.log(
     `Attempting to add product ${productId} (qty ${quantity}) to cart ${cartId}`,
   );
@@ -70,8 +70,8 @@ export const addToCartTool: TamboTool<any, any, []> = {
       `/api/inventory/product?name=${encodeURIComponent(productName)}`,
     );
     const searchData = await searchRes.json();
-
-    const firstMatch = searchData?.data?.results?.[0];
+    console.log(`Search results for "${productName}":`, searchData?.results);
+    const firstMatch = searchData?.results?.[0];
 
     if (!firstMatch) {
       return AddToCartOutputZ.parse({

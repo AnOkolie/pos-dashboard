@@ -1,7 +1,7 @@
 import "./App.css";
 import { TamboProvider } from "@tambo-ai/react";
 import { components as tamboComponents } from "./components/tambo/components";
-import { MessageThreadFull } from "./components/tambo/message-thread-full";
+import { MessageThreadPanel } from "./components/tambo/message-thread-panel";
 
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 
@@ -54,10 +54,10 @@ function AppShell() {
         <TamboProvider
           apiKey={import.meta.env.VITE_TAMBO_API_KEY ?? ""}
           components={tamboComponents}
-          tools={tools}
+          tools={[]}
           userKey="dev-user-1"
         >
-          <MessageThreadFull />
+          <MessageThreadPanel />
         </TamboProvider>
 
         <Outlet />
@@ -70,7 +70,8 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <AppShell />,
-    loader: cartLoader,
+    // loader: cartLoader,
+    // action: cartAction,
     children: [
       {
         path: "inventory",

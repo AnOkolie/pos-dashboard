@@ -1,15 +1,9 @@
 "use client";
 
 import { useTamboMcpPrompt } from "@tambo-ai/react/mcp";
-import { ElicitationUI } from "../../components/tambo/elicitation-ui";
-import {
-  McpPromptButton,
-  McpResourceButton,
-} from "../../components/tambo/mcp-components";
-import {
-  Tooltip,
-  TooltipProvider,
-} from "../../components/tambo/message-suggestions";
+import { ElicitationUI } from "./elicitation-ui";
+import { McpPromptButton, McpResourceButton } from "./mcp-components";
+import { Tooltip, TooltipProvider } from "./message-suggestions";
 import { cn } from "../../lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import {
@@ -39,7 +33,7 @@ import {
   type PromptProvider,
   type ResourceProvider,
   type StagedImageRenderProps,
-} from "@tambo-ai/react-ui-base/message-input";
+} from "@tambo-ai/react-ui-base";
 
 // Lazy load DictationButton for code splitting (framework-agnostic alternative to next/dynamic)
 // eslint-disable-next-line @typescript-eslint/promise-function-async
