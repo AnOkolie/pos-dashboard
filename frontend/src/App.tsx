@@ -54,7 +54,7 @@ function AppShell() {
         <TamboProvider
           apiKey={import.meta.env.VITE_TAMBO_API_KEY ?? ""}
           components={tamboComponents}
-          tools={[]}
+          tools={tools}
           userKey="dev-user-1"
         >
           <MessageThreadPanel />
